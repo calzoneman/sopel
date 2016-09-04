@@ -50,6 +50,14 @@ def auth_after_register(bot):
             'AUTHSERV auth',
             account + ' ' + password
         ))
+    
+    elif bot.config.core.auth_method == 'Q':
+        account = bot.config.core.auth_username
+        password = bot.config.core.auth_password
+        bot.write((
+            'AUTH',
+            account + ' ' + password
+        ))
 
 
 @sopel.module.event(events.RPL_WELCOME, events.RPL_LUSERCLIENT)
@@ -357,6 +365,7 @@ def track_join(bot, trigger):
     user = bot.users.get(trigger.nick)
     if user is None:
         user = User(trigger.nick, trigger.user, trigger.host)
+        bot.users[trigger.nick] = user
     bot.channels[trigger.sender].add_user(user)
 
     if len(trigger.args) > 1 and trigger.args[1] != '*' and (
@@ -696,12 +705,16 @@ def track_notify(bot, trigger):
 
 
 @sopel.module.rule('.*')
+@sopel.module.event('TOPIC')
 @sopel.module.event(events.RPL_TOPIC)
 @sopel.module.priority('high')
 @sopel.module.thread(False)
 @sopel.module.unblockable
 def track_topic(bot, trigger):
-    channel = trigger.args[1]
+    if trigger.event != 'TOPIC':
+        channel = trigger.args[1]
+    else:
+        channel = trigger.args[0]
     if channel not in bot.channels:
         return
     bot.channels[channel].topic = trigger.args[-1]

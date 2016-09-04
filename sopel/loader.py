@@ -159,6 +159,8 @@ def clean_callable(func, config):
     func.priority = getattr(func, 'priority', 'medium')
     func.thread = getattr(func, 'thread', True)
     func.rate = getattr(func, 'rate', 0)
+    func.channel_rate = getattr(func, 'channel_rate', 0)
+    func.global_rate = getattr(func, 'global_rate', 0)
 
     if not hasattr(func, 'event'):
         func.event = ['PRIVMSG']
@@ -181,7 +183,7 @@ def clean_callable(func, config):
         if hasattr(func, 'example'):
             example = func.example[0]["example"]
             example = example.replace('$nickname', nick)
-            if example[0] != help_prefix:
+            if example[0] != help_prefix and not example.startswith(nick):
                 example = help_prefix + example[len(help_prefix):]
         if doc or example:
             for command in func.commands:

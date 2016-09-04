@@ -137,16 +137,18 @@ def weather(bot, trigger):
     if not woeid:
         return bot.reply("I don't know where that is.")
 
-    query = web.urlencode({'w': woeid, 'u': 'c'})
-    raw = web.get('http://weather.yahooapis.com/forecastrss?' + query,
+    query = 'q=select * from weather.forecast where woeid="%s" and u=\'c\'' % woeid
+    body = web.get('http://query.yahooapis.com/v1/public/yql?' + query,
                   dont_decode=True)
-    parsed = xmltodict.parse(raw).get('rss')
-    location = parsed.get('channel').get('title')
-
-    cover = get_cover(parsed)
-    temp = get_temp(parsed)
-    humidity = get_humidity(parsed)
-    wind = get_wind(parsed)
+    parsed = xmltodict.parse(body).get('query')
+    results = parsed.get('results')
+    if results is None:
+        return bot.reply("No forecast available. Try a more specific location.")
+    location = results.get('channel').get('title')
+    cover = get_cover(results)
+    temp = get_temp(results)
+    humidity = get_humidity(results)
+    wind = get_wind(results)
     bot.say(u'%s: %s, %s, %s, %s' % (location, cover, temp, humidity, wind))
 
 
@@ -178,6 +180,5 @@ def update_woeid(bot, trigger):
         city = first_result.get('name')
     state = first_result.get('admin1').get('#text') or ''
     country = first_result.get('country').get('#text') or ''
-    uzip = first_result.get('postal').get('#text') or ''
-    bot.reply('I now have you at WOEID %s (%s%s, %s, %s %s)' %
-              (woeid, neighborhood, city, state, country, uzip))
+    bot.reply('I now have you at WOEID %s (%s%s, %s, %s)' %
+              (woeid, neighborhood, city, state, country))

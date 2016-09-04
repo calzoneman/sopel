@@ -64,7 +64,8 @@ class PreTrigger(object):
         self.nick = sopel.tools.Identifier(self.nick)
 
         # If we have arguments, the first one is the sender
-        if self.args:
+        # Unless it's a QUIT event
+        if self.args and self.event != 'QUIT':
             target = sopel.tools.Identifier(self.args[0])
         else:
             target = None
@@ -82,6 +83,11 @@ class PreTrigger(object):
                 intent, message = intent_match.groups()
                 self.tags['intent'] = intent
                 self.args[-1] = message or ''
+
+        # Populate account from extended-join messages
+        if self.event == 'JOIN' and len(self.args) == 3:
+            # Account is the second arg `...JOIN #Sopel account :realname`
+            self.tags['account'] = self.args[1]
 
 
 class Trigger(unicode):
@@ -126,6 +132,10 @@ class Trigger(unicode):
     See Python :mod:`re` documentation for details."""
     groups = property(lambda self: self._match.groups)
     """The ``groups`` function of the ``match`` attribute.
+
+    See Python :mod:`re` documentation for details."""
+    groupdict = property(lambda self: self._match.groupdict)
+    """The ``groupdict`` function of the ``match`` attribute.
 
     See Python :mod:`re` documentation for details."""
     args = property(lambda self: self._pretrigger.args)

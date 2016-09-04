@@ -60,6 +60,7 @@ class Bot(asynchat.async_chat):
 
         self.stack = {}
         self.ca_certs = ca_certs
+        self.enabled_capabilities = set()
         self.hasquit = False
 
         self.sending = threading.RLock()
@@ -154,7 +155,6 @@ class Bot(asynchat.async_chat):
             self.initiate_connect(host, port)
         except socket.error as e:
             stderr('Connection error: %s' % e)
-            self.hasquit = True
 
     def initiate_connect(self, host, port):
         stderr('Connecting to %s:%s...' % (host, port))
@@ -190,7 +190,8 @@ class Bot(asynchat.async_chat):
     def handle_close(self):
         self.connection_registered = False
 
-        self._shutdown()
+        if hasattr(self, '_shutdown'):
+            self._shutdown()
         stderr('Closed!')
 
         # This will eventually call asyncore dispatchers close method, which
@@ -232,8 +233,10 @@ class Bot(asynchat.async_chat):
         stderr('Connected.')
         self.last_ping_time = datetime.now()
         timeout_check_thread = threading.Thread(target=self._timeout_check)
+        timeout_check_thread.daemon = True
         timeout_check_thread.start()
         ping_thread = threading.Thread(target=self._send_ping)
+        ping_thread.daemon = True
         ping_thread.start()
 
     def _timeout_check(self):
@@ -316,7 +319,7 @@ class Bot(asynchat.async_chat):
         self.buffer = ''
         self.last_ping_time = datetime.now()
         pretrigger = PreTrigger(self.nick, line)
-        if 'account-tag' not in self.enabled_capabilities:
+        if all(cap not in self.enabled_capabilities for cap in ['account-tag', 'extended-join']):
             pretrigger.tags.pop('account', None)
 
         if pretrigger.event == 'PING':
@@ -368,12 +371,15 @@ class Bot(asynchat.async_chat):
                 stderr("Could not save full traceback!")
                 LOGGER.error("Could not save traceback from %s to file: %s", trigger.sender, str(e))
 
-            if trigger:
+            if trigger and self.config.core.reply_errors and trigger.sender is not None:
                 self.msg(trigger.sender, signature)
-        except Exception as e:
             if trigger:
+                LOGGER.error('Exception from {}: {} ({})'.format(trigger.sender, str(signature), trigger.raw))
+        except Exception as e:
+            if trigger and self.config.core.reply_errors and trigger.sender is not None:
                 self.msg(trigger.sender, "Got an error.")
-                LOGGER.error("Exception from %s: %s", trigger.sender, str(e))
+            if trigger:
+                LOGGER.error('Exception from {}: {} ({})'.format(trigger.sender, str(e), trigger.raw))
 
     def handle_error(self):
         """Handle any uncaptured error in the core.
@@ -399,7 +405,7 @@ class Bot(asynchat.async_chat):
         logfile.close()
         if self.error_count > 10:
             if (datetime.now() - self.last_error_timestamp).seconds < 5:
-                print >> sys.stderr, "Too many errors, can't continue"
+                stderr("Too many errors, can't continue")
                 os._exit(1)
         self.last_error_timestamp = datetime.now()
         self.error_count = self.error_count + 1

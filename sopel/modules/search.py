@@ -33,15 +33,15 @@ def bing_search(query, lang='en-GB'):
     if m:
         return m.group(1)
 
-r_duck = re.compile(r'nofollow" class="[^"]+" href="(.*?)">')
+r_duck = re.compile(r'nofollow" class="[^"]+" href="(?!https?:\/\/r\.search\.yahoo)(.*?)">')
 
 
 def duck_search(query):
     query = query.replace('!', '')
     uri = 'http://duckduckgo.com/html/?q=%s&kl=uk-en' % query
     bytes = web.get(uri)
-    if 'web-result"' in bytes:  # filter out the adds on top of the page
-        bytes = bytes.split('web-result"')[1]
+    if 'web-result' in bytes:  # filter out the adds on top of the page
+        bytes = bytes.split('web-result')[1]
     m = r_duck.search(bytes)
     if m:
         return web.decode(m.group(1))

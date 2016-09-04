@@ -131,7 +131,7 @@ def commands(*command_list):
         attribute. If there is no commands attribute, it is added.
 
     Example:
-        @command("hello"):
+        @commands("hello"):
             If the command prefix is "\.", this would trigger on lines starting
             with ".hello".
 
@@ -248,19 +248,21 @@ def intent(*intent_list):
     return add_attribute
 
 
-def rate(value):
-    """Decorate a function to limit how often a single user may trigger it.
-
-    If a function is given a rate of 20, a single user may only use that
-    function once every 20 seconds. This limit applies to each user
-    individually. Users on the admin list in Sopel’s configuration are exempted
-    from rate limits.
+def rate(user=0, channel=0, server=0):
+    """Decorate a function to limit how often it can be triggered on a per-user
+    basis, in a channel, or across the server (bot). A value of zero means no 
+    limit. If a function is given a rate of 20, that function may only be used
+    once every 20 seconds in the scope corresponding to the parameter.
+    Users on the admin list in Sopel’s configuration are exempted from rate 
+    limits.
 
     Rate-limited functions that use scheduled future commands should import
     threading.Timer() instead of sched, or rate limiting will not work properly.
     """
     def add_attribute(function):
-        function.rate = value
+        function.rate = user
+        function.channel_rate = channel
+        function.global_rate = server
         return function
     return add_attribute
 
@@ -318,6 +320,9 @@ def require_privilege(level, message=None):
     def actual_decorator(function):
         @functools.wraps(function)
         def guarded(bot, trigger, *args, **kwargs):
+            # If this is a privmsg, ignore privilege requirements
+            if trigger.is_privmsg:
+                return function(bot, trigger, *args, **kwargs)
             channel_privs = bot.privileges[trigger.sender]
             allowed = channel_privs.get(trigger.nick, 0) >= level
             if not trigger.is_privmsg and not allowed:

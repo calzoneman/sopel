@@ -50,10 +50,10 @@ class CoreSection(StaticSection):
     capabilities."""
 
     auth_method = ChoiceAttribute('auth_method', choices=[
-        'nickserv', 'authserv', 'sasl', 'server'])
+        'nickserv', 'authserv', 'Q', 'sasl', 'server'])
     """The method to use to authenticate with the server.
 
-    Can be ``nickserv``, ``authserv``, ``sasl``, or ``server``."""
+    Can be ``nickserv``, ``authserv``, ``Q``, ``sasl``, or ``server``."""
 
     auth_password = ValidatedAttribute('auth_password')
     """The password to use to authenticate with the server."""
@@ -177,6 +177,9 @@ class CoreSection(StaticSection):
 
     It is a regular expression (so the default, ``\.``, means commands start
     with a period), though using capturing groups will create problems."""
+
+    reply_errors = ValidatedAttribute('reply_errors', bool, default=True)
+    """Whether to message the sender of a message that triggered an error with the exception."""
 
     throttle_join = ValidatedAttribute('throttle_join', int)
     """Slow down the initial join of channels to prevent getting kicked.
