@@ -8,13 +8,14 @@
 from __future__ import unicode_literals, absolute_import, print_function, division
 
 import re
-from contextlib import closing
-from sopel import web, tools
+from sopel import web, tools, __version__
 from sopel.module import commands, rule, example
 from sopel.config.types import ValidatedAttribute, ListAttribute, StaticSection
 
 import requests
 
+USER_AGENT = 'Sopel/{} (http://sopel.chat)'.format(__version__)
+default_headers = {'User-Agent': USER_AGENT}
 url_finder = None
 # These are used to clean up the title tag before actually parsing it. Not the
 # world's best way to do this, but it'll do for now.
@@ -176,7 +177,8 @@ def check_callbacks(bot, trigger, url, run=True):
     for regex, function in tools.iteritems(bot.memory['url_callbacks']):
         match = regex.search(url)
         if match:
-            if run:
+            # Always run ones from @url; they don't run on their own.
+            if run or hasattr(function, 'url_regex'):
                 function(bot, trigger, match)
             matched = True
     return matched
@@ -184,18 +186,15 @@ def check_callbacks(bot, trigger, url, run=True):
 
 def find_title(url, verify=True):
     """Return the title for the given URL."""
-    response = requests.get(url, stream=True, verify=verify)
+    response = requests.get(url, stream=True, verify=verify,
+                            headers=default_headers)
     try:
-        content = ''
-        for byte in response.iter_content(chunk_size=512, decode_unicode=True):
-            if not isinstance(byte, bytes):
-                content += byte
-            else:
+        content = b''
+        for byte in response.iter_content(chunk_size=512):
+            content += byte
+            if b'</title>' in content or len(content) > max_bytes:
                 break
-            if '</title>' in content or len(content) > max_bytes:
-                break
-    except UnicodeDecodeError:
-        return  # Fail silently when data can't be decoded
+        content = content.decode('utf-8', errors='ignore')
     finally:
         # need to close the connexion because we have not read all the data
         response.close()
