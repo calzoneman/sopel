@@ -90,6 +90,6 @@ def update_location(bot, trigger):
                 weather.location)
         bot.reply("OK, I've updated your location to {}".format(
                 weather.location))
-        boy.say('[Weather Underground] ' + str(weather))
+        bot.say('[Weather Underground] ' + str(weather))
     except Exception as e:
         bot.reply('Unable to update location: {}'.format(e))
