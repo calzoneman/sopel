@@ -41,6 +41,7 @@ class WeatherReport:
                 raw['temperature_string'], count=2)
         self.humidity = raw['relative_humidity']
         self.wind = raw['wind_string']
+        self.raw = raw
 
     def __str__(self):
         return WEATHER_TEMPLATE.format(**self.__dict__)
@@ -49,12 +50,14 @@ def get_weather(location):
     location = quote(location)
     r = requests.get(URL_TEMPLATE.format(api_key=API_KEY, query=location))
     if r.status_code != 200:
-        r.raise_for_status()
+        raise WeatherError('Unable to retrieve weather: HTTP {}'.format(
+                r.status_code))
 
     response = r.json()
-    if 'error' in response:
+    if 'error' in response['response']:
         raise WeatherError(
-                'Unable to retrieve weather: {}'.format(response['error']))
+                'Unable to retrieve weather: {}'.format(
+                    response['response']['error']['description']))
 
     return WeatherReport(response['current_observation'])
 
@@ -71,9 +74,14 @@ def wunderground(bot, trigger):
                     'for example.')
 
     location = location.strip()
+    user_location = bot.db.get_nick_value(location, 'wunderground_loc')
+    if user_location:
+        location = user_location
     try:
         weather = get_weather(location)
         bot.say('[Weather Underground] ' + str(weather))
+    except WeatherError as e:
+        bot.say(str(e))
     except Exception as e:
         return bot.say('[Exception] {}'.format(e))
 
@@ -87,7 +95,7 @@ def update_location(bot, trigger):
     try:
         weather = get_weather(trigger.group(2))
         bot.db.set_nick_value(trigger.nick, 'wunderground_loc',
-                weather.location)
+                'pws:' + weather.raw['station_id'])
         bot.reply("OK, I've updated your location to {}".format(
                 weather.location))
         bot.say('[Weather Underground] ' + str(weather))
