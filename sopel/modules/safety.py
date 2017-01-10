@@ -72,7 +72,9 @@ def setup(bot):
     if os.path.isfile(loc):
         if os.path.getmtime(loc) < time.time() - 24 * 60 * 60 * 7:
             # File exists but older than one week, update
-            _download_malwaredomains_db(loc)
+            #_download_malwaredomains_db(loc)
+            # ^ Seems to be broken atm
+            pass
     else:
         _download_malwaredomains_db(loc)
     with open(loc, 'r') as f:

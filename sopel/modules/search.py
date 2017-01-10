@@ -9,6 +9,7 @@ from sopel import web
 from sopel.module import commands, example
 import json
 import sys
+import urllib.parse
 
 if sys.version_info.major < 3:
     from urllib import quote_plus
@@ -44,7 +45,11 @@ def duck_search(query):
         bytes = bytes.split('web-result')[1]
     m = r_duck.search(bytes)
     if m:
-        return web.decode(m.group(1))
+        parsed = urllib.parse.urlparse(web.decode(m.group(1)))
+        query = urllib.parse.parse_qs(parsed.query)
+        if 'uddg' in query:
+            return urllib.parse.unquote(query['uddg'][0])
+    return None
 
 # Alias google_search to duck_search
 google_search = duck_search
