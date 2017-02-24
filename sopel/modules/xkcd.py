@@ -11,21 +11,6 @@ import requests
 from sopel.modules.search import google_search
 from sopel.module import commands, url
 
-ignored_sites = [
-    # For google searching
-    'almamater.xkcd.com',
-    'blog.xkcd.com',
-    'blag.xkcd.com',
-    'forums.xkcd.com',
-    'fora.xkcd.com',
-    'forums3.xkcd.com',
-    'store.xkcd.com',
-    'wiki.xkcd.com',
-    'what-if.xkcd.com',
-]
-sites_query = ' site:xkcd.com -site:' + ' -site:'.join(ignored_sites)
-
-
 def get_info(number=None, verify_ssl=True):
     if number:
         url = 'http://xkcd.com/{}/info.0.json'.format(number)
@@ -37,7 +22,7 @@ def get_info(number=None, verify_ssl=True):
 
 
 def google(query):
-    url = google_search(query + sites_query)
+    url = google_search(query + ' site:xkcd.com')
     if not url:
         return None
     match = re.match('(?:https?://)?xkcd.com/(\d+)/?', url)
@@ -72,7 +57,7 @@ def xkcd(bot, trigger):
             query = int(numbered.group(2))
             if numbered.group(1) == "-":
                 query = -query
-            return numbered_result(bot, query, latest)
+            return numbered_result(bot, query, latest, verify_ssl)
         else:
             # Non-number: google.
             if (query.lower() == "latest" or query.lower() == "newest"):
@@ -121,4 +106,4 @@ def say_result(bot, result):
 def get_url(bot, trigger, match):
     verify_ssl = bot.config.core.verify_ssl
     latest = get_info(verify_ssl=verify_ssl)
-    numbered_result(bot, int(match.group(1)), latest)
+    numbered_result(bot, int(match.group(1)), latest, verify_ssl)
