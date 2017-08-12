@@ -13,6 +13,7 @@ from sopel.module import commands, rule, example
 from sopel.config.types import ValidatedAttribute, ListAttribute, StaticSection
 
 import requests
+from bs4 import BeautifulSoup
 
 USER_AGENT = 'Sopel/{} (http://sopel.chat)'.format(__version__)
 default_headers = {'User-Agent': USER_AGENT}
@@ -188,32 +189,17 @@ def find_title(url, verify=True):
     """Return the title for the given URL."""
     response = requests.get(url, stream=True, verify=verify,
                             headers=default_headers)
-    try:
-        content = b''
-        for byte in response.iter_content(chunk_size=512):
-            content += byte
-            if b'</title>' in content or len(content) > max_bytes:
-                break
-        content = content.decode('utf-8', errors='ignore')
-    finally:
-        # need to close the connexion because we have not read all the data
-        response.close()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    if not soup.title:
+        return None
 
-    # Some cleanup that I don't really grok, but was in the original, so
-    # we'll keep it (with the compiled regexes made global) for now.
-    content = title_tag_data.sub(r'<\1title>', content)
-    content = quoted_title.sub('', content)
+    title = soup.title.string
 
-    start = content.find('<title>')
-    end = content.find('</title>')
-    if start == -1 or end == -1:
-        return
-    title = web.decode(content[start + 7:end])
+    # Below substitutions left intact
     title = title.strip()[:200]
-
     title = ' '.join(title.split())  # cleanly remove multiple spaces
-
     # More cryptic regex substitutions. This one looks to be myano's invention.
+    # @calzoneman 2017-08-11: this seems unnecessary but I'm afraid to remove.
     title = re_dcc.sub('', title)
 
     return title or None
