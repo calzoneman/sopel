@@ -18,17 +18,9 @@ from bs4 import BeautifulSoup
 USER_AGENT = 'Sopel/{} (http://sopel.chat)'.format(__version__)
 default_headers = {'User-Agent': USER_AGENT}
 url_finder = None
-# These are used to clean up the title tag before actually parsing it. Not the
-# world's best way to do this, but it'll do for now.
-title_tag_data = re.compile('<(/?)title( [^>]+)?>', re.IGNORECASE)
-quoted_title = re.compile('[\'"]<title>[\'"]', re.IGNORECASE)
 # This is another regex that presumably does something important.
 re_dcc = re.compile(r'(?i)dcc\ssend')
-# This sets the maximum number of bytes that should be read in order to find
-# the title. We don't want it too high, or a link to a big file/stream will
-# just keep downloading until there's no more memory. 640k ought to be enough
-# for anybody.
-max_bytes = 655360
+re_maybe_html_tag = re.compile(r'<[A-Za-z]+')
 
 
 class UrlSection(StaticSection):
@@ -184,16 +176,37 @@ def check_callbacks(bot, trigger, url, run=True):
             matched = True
     return matched
 
+def looks_like_html(fragment):
+    try:
+        if re_maybe_html_tag.search(fragment.decode('ascii', errors='replace')):
+            return True
+        else:
+            return False
+    except:
+        return False
+
 
 def find_title(url, verify=True):
     """Return the title for the given URL."""
     response = requests.get(url, stream=True, verify=verify,
                             headers=default_headers)
-    soup = BeautifulSoup(response.text, 'html.parser')
+
+    if not response.headers['content-type'].startswith('text/html'):
+        return None
+
+    # If there's not an HTML tag in the first 1KB of the page, probably not
+    # going to be in the rest of it...
+    if not looks_like_html(response.content[:1000]):
+        return None
+
+    # Limit to souping the first 1MB of text
+    soup = BeautifulSoup(response.content[:1000000], 'html.parser')
     if not soup.title:
+        soup.decompose()
         return None
 
     title = soup.title.string
+    soup.decompose()
 
     # Below substitutions left intact
     title = title.strip()[:200]
