@@ -4,15 +4,12 @@
 from __future__ import unicode_literals, absolute_import, print_function, division
 
 import json
-import xmltodict
 import re
+import requests
 
-from sopel import web
 from sopel.module import commands, example, NOLIMIT
 
-# The Canadian central bank has better exchange rate data than the Fed, the
-# Bank of England, or the European Central Bank. Who knew?
-base_url = 'http://www.bankofcanada.ca/stats/assets/rates_rss/noon/en_{}.xml'
+exchange_url = 'http://api.fixer.io/latest?base={from_code}&symbols={to_code}'
 regex = re.compile(r'''
     (\d+(?:\.\d+)?)        # Decimal number
     \s*([a-zA-Z]{3})       # 3-letter currency code
@@ -20,86 +17,69 @@ regex = re.compile(r'''
     ([a-zA-Z]{3})          # 3-letter currency code
     ''', re.VERBOSE)
 
+def get_exchange_rate(from_code, to_code):
+    from_code = from_code.upper()
+    to_code = to_code.upper()
 
-def get_rate(code):
-    code = code.upper()
-    if code == 'CAD':
-        return 1, 'Canadian Dollar'
-    elif code == 'BTC':
-        rates = json.loads(web.get('https://api.bitcoinaverage.com/ticker/all'))
-        return 1 / rates['CAD']['24h_avg'], 'Bitcoin—24hr average'
+    # TODO: fix bitcoin
+    if from_code == 'BTC' or to_code == 'BTC':
+        raise Exception('Bitcoin conversion is not supported at the moment')
 
-    data, headers = web.get(base_url.format(code), dont_decode=True, return_headers=True)
-    if headers['_http_status'] == 404:
-        return False, False
-    namespaces = {
-        'http://www.cbwiki.net/wiki/index.php/Specification_1.1': 'cb',
-        'http://purl.org/rss/1.0/': None,
-        'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf'
-    }
-    xml = xmltodict.parse(data, process_namespaces=True, namespaces=namespaces).get('rdf:RDF')
-    namestring = xml.get('channel').get('title').get('#text')
-    name = namestring[len('Bank of Canada noon rate: '):]
-    name = re.sub(r'\s*\(noon\)\s*', '', name)
-    rate = xml.get('item').get('cb:statistics').get('cb:exchangeRate').get('cb:value').get('#text')
-    return float(rate), name
+    url = exchange_url.format(from_code=from_code, to_code=to_code)
+    res = requests.get(url)
 
+    if res.status_code == 422: # Unprocessable Entity
+        raise Exception('Unknown currency code "{}"'.format(from_code))
+
+    if res.status_code != 200:
+        raise Exception('Unable to retrieve exchange rate: HTTP {}'.format(
+                res.status_code))
+
+    data = res.json()
+
+    if to_code not in data['rates']:
+        raise Exception('Unknown currency code "{}"'.format(to_code))
+
+    return data['rates'][to_code]
 
 @commands('cur', 'currency', 'exchange')
 @example('.cur 20 EUR in USD')
 def exchange(bot, trigger):
     """Show the exchange rate between two currencies"""
+
     if not trigger.group(2):
         return bot.reply("No search term. An example: .cur 20 EUR in USD")
+
     match = regex.match(trigger.group(2))
+
     if not match:
-        # It's apologetic, because it's using Canadian data.
         bot.reply("Sorry, I didn't understand the input.")
         return NOLIMIT
 
     amount, of, to = match.groups()
+
     try:
         amount = float(amount)
     except:
         bot.reply("Sorry, I didn't understand the input.")
+
     display(bot, amount, of, to)
 
 
 def display(bot, amount, of, to):
     if not amount:
         bot.reply("Zero is zero, no matter what country you're in.")
-    try:
-        of_rate, of_name = get_rate(of)
-        if not of_name:
-            bot.reply("Unknown currency: %s" % of)
-            return
-        to_rate, to_name = get_rate(to)
-        if not to_name:
-            bot.reply("Unknown currency: %s" % to)
-            return
-    except Exception:
-        bot.reply("Something went wrong while I was getting the exchange rate.")
-        return NOLIMIT
-
-    result = amount / of_rate * to_rate
-    bot.say("{} {} ({}) = {} {} ({})".format(amount, of.upper(), of_name,
-                                             result, to.upper(), to_name))
-
-
-@commands('btc', 'bitcoin')
-@example('.btc 20 EUR')
-def bitcoin(bot, trigger):
-    #if 2 args, 1st is number and 2nd is currency. If 1 arg, it's either the number or the currency.
-    to = trigger.group(4)
-    amount = trigger.group(3)
-    if not to:
-        to = trigger.group(3) or 'USD'
-        amount = 1
 
     try:
-        amount = float(amount)
-    except:
-        bot.reply("Sorry, I didn't understand the input.")
+        rate = get_exchange_rate(of, to)
+    except Exception as e:
+        bot.reply('Unable to retrieve exchange rate: {}'.format(e))
         return NOLIMIT
 
-    display(bot, amount, 'BTC', to)
+    result = amount * rate
+    bot.say('{from_amount:.2f} {from_code} = {to_amount:.2f} {to_code}'.format(
+        from_amount=amount,
+        from_code=of.upper(),
+        to_amount=result,
+        to_code=to.upper()
+    ))
