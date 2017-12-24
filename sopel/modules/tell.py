@@ -16,7 +16,7 @@ from sopel.tools import Identifier, iterkeys
 from sopel.tools.time import get_timezone, format_time
 from sopel.module import commands, nickname_commands, rule, priority, example
 
-maximum = 4
+maximum = 1
 
 
 def loadReminders(fn, lock):
