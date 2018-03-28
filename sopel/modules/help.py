@@ -78,22 +78,23 @@ def help(bot, trigger):
 def create_gist(bot, msg):
     try:
         result = requests.post('https://paste.lymjeh.me/paste',
-                               data={'content': msg})
+                               data={'content': msg},
+                               allow_redirects=False)
     except requests.RequestException:
         bot.say("Sorry! Something went wrong.")
         logger.exception("Error posting commands gist")
         return
-    if not result.status_code != '201':
+    if not result.status_code != '302':
         bot.say("Sorry! Something went wrong.")
         logger.error("Error %s posting commands gist: %s",
                      result.status_code, result.text)
         return
-    result = result.json()
-    if 'html_url' not in result:
+    result = result.headers['location']
+    if not result:
         bot.say("Sorry! Something went wrong.")
         logger.error("Invalid result %s", result)
         return
-    return result['html_url']
+    return result
 
 
 @rule('$nick' r'(?i)help(?:[?!]+)?$')
