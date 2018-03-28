@@ -94,7 +94,7 @@ def create_gist(bot, msg):
         bot.say("Sorry! Something went wrong.")
         logger.error("Invalid result %s", result)
         return
-    return result
+    return 'https://paste.lymjeh.me/' + result
 
 
 @rule('$nick' r'(?i)help(?:[?!]+)?$')
