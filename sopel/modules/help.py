@@ -76,18 +76,9 @@ def help(bot, trigger):
 
 
 def create_gist(bot, msg):
-    payload = {
-        'description': 'Command listing for {}@{}'.format(bot.nick, bot.config.core.host),
-        'public': 'true',
-        'files': {
-            'commands.txt': {
-                "content": msg,
-            },
-        },
-    }
     try:
-        result = requests.post('https://api.github.com/gists',
-                               data=json.dumps(payload))
+        result = requests.post('https://paste.lymjeh.me/paste',
+                               data={'content': msg})
     except requests.RequestException:
         bot.say("Sorry! Something went wrong.")
         logger.exception("Error posting commands gist")
