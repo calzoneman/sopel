@@ -7,6 +7,7 @@ Licensed under the Eiffel Forum License 2.
 This module is an attempt to implement at least some of the functionallity of Debian's meetbot
 """
 from __future__ import unicode_literals, absolute_import, print_function, division
+
 import time
 import os
 from sopel.config.types import (
@@ -68,8 +69,8 @@ meeting_log_baseurl = ''  # To be defined on meeting start as part of sanity che
 meeting_actions = {}  # A dict of channels to the actions that have been created in them. This way we can have .listactions spit them back out later on.
 
 
-#Get the logfile name for the meeting in the requested channel
-#Used by all logging functions
+# Get the logfile name for the meeting in the requested channel
+# Used by all logging functions
 def figure_logfile_name(channel):
     if meetings_dict[channel]['title'] is 'Untitled meeting':
         name = 'untitled'
@@ -84,7 +85,7 @@ def figure_logfile_name(channel):
     return filename
 
 
-#Start HTML log
+# Start HTML log
 def logHTML_start(channel):
     logfile = codecs.open(meeting_log_path + channel + '/' + figure_logfile_name(channel) + '.html', 'a', encoding='utf-8')
     timestring = time.strftime('%Y-%m-%d %H:%M', time.gmtime(meetings_dict[channel]['start']))
@@ -94,14 +95,14 @@ def logHTML_start(channel):
     logfile.close()
 
 
-#Write a list item in the HTML log
+# Write a list item in the HTML log
 def logHTML_listitem(item, channel):
     logfile = codecs.open(meeting_log_path + channel + '/' + figure_logfile_name(channel) + '.html', 'a', encoding='utf-8')
     logfile.write('<li>' + item + '</li>\n')
     logfile.close()
 
 
-#End the HTML log
+# End the HTML log
 def logHTML_end(channel):
     logfile = codecs.open(meeting_log_path + channel + '/' + figure_logfile_name(channel) + '.html', 'a', encoding='utf-8')
     current_time = time.strftime('%H:%M:%S', time.gmtime())
@@ -112,7 +113,7 @@ def logHTML_end(channel):
     logfile.close()
 
 
-#Write a string to the plain text log
+# Write a string to the plain text log
 def logplain(item, channel):
     current_time = time.strftime('%H:%M:%S', time.gmtime())
     logfile = codecs.open(meeting_log_path + channel + '/' + figure_logfile_name(channel) + '.log', 'a', encoding='utf-8')
@@ -120,29 +121,29 @@ def logplain(item, channel):
     logfile.close()
 
 
-#Check if a meeting is currently running
+# Check if a meeting is currently running
 def ismeetingrunning(channel):
     try:
         if meetings_dict[channel]['running']:
             return True
         else:
             return False
-    except:
+    except KeyError:
         return False
 
 
-#Check if nick is a chair or head of the meeting
+# Check if nick is a chair or head of the meeting
 def ischair(nick, channel):
     try:
         if nick.lower() == meetings_dict[channel]['head'] or nick.lower() in meetings_dict[channel]['chairs']:
             return True
         else:
             return False
-    except:
+    except KeyError:
         return False
 
 
-#Start meeting (also preforms all required sanity checks)
+# Start meeting (also preforms all required sanity checks)
 @commands('startmeeting')
 @example('.startmeeting title or .startmeeting')
 def startmeeting(bot, trigger):
@@ -156,7 +157,7 @@ def startmeeting(bot, trigger):
     if trigger.is_privmsg:
         bot.say('Can only start meetings in channels')
         return
-    #Start the meeting
+    # Start the meeting
     meetings_dict[trigger.sender]['start'] = time.time()
     if not trigger.group(2):
         meetings_dict[trigger.sender]['title'] = 'Untitled meeting'
@@ -177,12 +178,12 @@ def startmeeting(bot, trigger):
     if not os.path.isdir(meeting_log_path + trigger.sender):
         try:
             os.makedirs(meeting_log_path + trigger.sender)
-        except Exception:
+        except Exception:  # TODO: Be specific
             bot.say("Can't create log directory for this channel, meeting not started!")
             meetings_dict[trigger.sender] = Ddict(dict)
             raise
             return
-    #Okay, meeting started!
+    # Okay, meeting started!
     logplain('Meeting started by ' + trigger.nick.lower(), trigger.sender)
     logHTML_start(trigger.sender)
     meeting_actions[trigger.sender] = []
@@ -192,7 +193,7 @@ def startmeeting(bot, trigger):
             'vocalize themselves.')
 
 
-#Change the current subject (will appear as <h3> in the HTML log)
+# Change the current subject (will appear as <h3> in the HTML log)
 @commands('subject')
 @example('.subject roll call')
 def meetingsubject(bot, trigger):
@@ -217,7 +218,7 @@ def meetingsubject(bot, trigger):
     bot.say('Current subject: ' + trigger.group(2))
 
 
-#End the meeting
+# End the meeting
 @commands('endmeeting')
 @example('.endmeeting')
 def endmeeting(bot, trigger):
@@ -232,7 +233,7 @@ def endmeeting(bot, trigger):
         bot.say('Only meeting head or chairs can do that')
         return
     meeting_length = time.time() - meetings_dict[trigger.sender]['start']
-    #TODO: Humanize time output
+    # TODO: Humanize time output
     bot.say("Meeting ended! total meeting length %d seconds" % meeting_length)
     logHTML_end(trigger.sender)
     htmllog_url = meeting_log_baseurl + quote(trigger.sender + '/' + figure_logfile_name(trigger.sender) + '.html')
@@ -242,7 +243,7 @@ def endmeeting(bot, trigger):
     del meeting_actions[trigger.sender]
 
 
-#Set meeting chairs (people who can control the meeting)
+# Set meeting chairs (people who can control the meeting)
 @commands('chairs')
 @example('.chairs Tyrope Jason elad')
 def chairs(bot, trigger):
@@ -266,7 +267,7 @@ def chairs(bot, trigger):
         bot.say("Only meeting head can set chairs")
 
 
-#Log action item in the HTML log
+# Log action item in the HTML log
 @commands('action')
 @example('.action elad will develop a meetbot')
 def meetingaction(bot, trigger):
@@ -299,7 +300,7 @@ def listactions(bot, trigger):
         bot.say('ACTION: ' + action)
 
 
-#Log agreed item in the HTML log
+# Log agreed item in the HTML log
 @commands('agreed')
 @example('.agreed Bowties are cool')
 def meetingagreed(bot, trigger):
@@ -321,7 +322,7 @@ def meetingagreed(bot, trigger):
     bot.say('AGREED: ' + trigger.group(2))
 
 
-#Log link item in the HTML log
+# Log link item in the HTML log
 @commands('link')
 @example('.link http://example.com')
 def meetinglink(bot, trigger):
@@ -343,14 +344,14 @@ def meetinglink(bot, trigger):
         link = "http://" + link
     try:
         title = find_title(link, verify=bot.config.core.verify_ssl)
-    except:
+    except Exception:  # TODO: Be specific
         title = ''
     logplain('LINK: %s [%s]' % (link, title), trigger.sender)
     logHTML_listitem('<a href="%s">%s</a>' % (link, title), trigger.sender)
     bot.say('LINK: ' + link)
 
 
-#Log informational item in the HTML log
+# Log informational item in the HTML log
 @commands('info')
 @example('.info all board members present')
 def meetinginfo(bot, trigger):
@@ -372,8 +373,8 @@ def meetinginfo(bot, trigger):
     bot.say('INFO: ' + trigger.group(2))
 
 
-#called for every single message
-#Will log to plain text only
+# called for every single message
+# Will log to plain text only
 @rule('(.*)')
 @priority('low')
 def log_meeting(bot, trigger):

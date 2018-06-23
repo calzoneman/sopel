@@ -46,7 +46,7 @@ try:
 except ImportError:
     has_ssl = False
 
-USER_AGENT = 'Sopel/{} (http://sopel.chat)'.format(__version__)
+USER_AGENT = 'Sopel/{} (https://sopel.chat)'.format(__version__)
 default_headers = {'User-Agent': USER_AGENT}
 ca_certs = None  # Will be overriden when config loads. This is for an edge case.
 
@@ -68,7 +68,7 @@ class MockHttpResponse(httplib.HTTPResponse):
 # HTTP GET
 @deprecated
 def get(uri, timeout=20, headers=None, return_headers=False,
-        limit_bytes=None, verify_ssl=True, dont_decode=False):
+        limit_bytes=None, verify_ssl=True, dont_decode=False):  # pragma: no cover
     """Execute an HTTP GET query on `uri`, and return the result. Deprecated.
 
     `timeout` is an optional argument, which represents how much time we should
@@ -86,7 +86,8 @@ def get(uri, timeout=20, headers=None, return_headers=False,
         headers = default_headers
     else:
         tmp = default_headers.copy()
-        headers = tmp.update(headers)
+        tmp.update(headers)
+        headers = tmp
     u = requests.get(uri, timeout=timeout, headers=headers, verify=verify_ssl)
     bytes = u.content
     u.close()
@@ -102,7 +103,7 @@ def get(uri, timeout=20, headers=None, return_headers=False,
 
 # Get HTTP headers
 @deprecated
-def head(uri, timeout=20, headers=None, verify_ssl=True):
+def head(uri, timeout=20, headers=None, verify_ssl=True):  # pragma: no cover
     """Execute an HTTP GET query on `uri`, and return the headers. Deprecated.
 
     `timeout` is an optional argument, which represents how much time we should
@@ -116,7 +117,8 @@ def head(uri, timeout=20, headers=None, verify_ssl=True):
         headers = default_headers
     else:
         tmp = default_headers.copy()
-        headers = tmp.update(headers)
+        tmp.update(headers)
+        headers = tmp
     u = requests.get(uri, timeout=timeout, headers=headers, verify=verify_ssl)
     info = u.headers
     u.close()
@@ -125,11 +127,12 @@ def head(uri, timeout=20, headers=None, verify_ssl=True):
 
 # HTTP POST
 @deprecated
-def post(uri, query, limit_bytes=None, timeout=20, verify_ssl=True, return_headers=False):
+def post(uri, query, limit_bytes=None, timeout=20, verify_ssl=True, return_headers=False):  # pragma: no cover
     """Execute an HTTP POST query. Deprecated.
 
-    `uri` is the target URI, and `query` is the POST data. `headers` is a dict
-    of HTTP headers to send with the request.
+    `uri` is the target URI, and `query` is the POST data.
+
+    If `return_headers` is true, returns a tuple of (bytes, headers).
 
     `limit_bytes` is ignored.
 
@@ -145,6 +148,7 @@ def post(uri, query, limit_bytes=None, timeout=20, verify_ssl=True, return_heade
     else:
         headers['_http_status'] = u.status_code
         return (bytes, headers)
+
 
 r_entity = re.compile(r'&([^;\s]+);')
 
@@ -168,7 +172,7 @@ def decode(html):
 # object they can execute read() on) Both handles redirects and makes sure
 # input URI is UTF-8
 @deprecated
-def get_urllib_object(uri, timeout, headers=None, verify_ssl=True, data=None):
+def get_urllib_object(uri, timeout, headers=None, verify_ssl=True, data=None):  # pragma: no cover
     """Return an HTTPResponse object for `uri` and `timeout` and `headers`. Deprecated
 
     """
@@ -177,7 +181,8 @@ def get_urllib_object(uri, timeout, headers=None, verify_ssl=True, data=None):
         headers = default_headers
     else:
         tmp = default_headers.copy()
-        headers = tmp.update(headers)
+        tmp.update(headers)
+        headers = tmp
     if data is not None:
         response = requests.post(uri, timeout=timeout, verify=verify_ssl,
                                  data=data, headers=headers)

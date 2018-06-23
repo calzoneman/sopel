@@ -4,12 +4,20 @@ etymology.py - Sopel Etymology Module
 Copyright 2007-9, Sean B. Palmer, inamidst.com
 Licensed under the Eiffel Forum License 2.
 
-http://sopel.chat
+https://sopel.chat
 """
 from __future__ import unicode_literals, absolute_import, print_function, division
 
+try:
+    from html import unescape
+except ImportError:
+    from HTMLParser import HTMLParser
+
+    # pep8 dictates a blank line here...
+    def unescape(s):
+        return HTMLParser.unescape.__func__(HTMLParser, s)
 import re
-from sopel import web
+import requests
 from sopel.module import commands, example, NOLIMIT
 
 etyuri = 'http://etymonline.com/?term=%s'
@@ -29,13 +37,6 @@ t_sentence = r'^.*?(?<!%s)(?:\.(?= [A-Z0-9]|\Z)|\Z)'
 r_sentence = re.compile(t_sentence % ')(?<!'.join(abbrs))
 
 
-def unescape(s):
-    s = s.replace('&gt;', '>')
-    s = s.replace('&lt;', '<')
-    s = s.replace('&amp;', '&')
-    return s
-
-
 def text(html):
     html = r_tag.sub('', html)
     html = r_whitespace.sub(' ', html)
@@ -50,7 +51,7 @@ def etymology(word):
         raise ValueError("Word too long: %s[...]" % word[:10])
     word = {'axe': 'ax/axe'}.get(word, word)
 
-    bytes = web.get(etyuri % word)
+    bytes = requests.get(etyuri % word).text
     definitions = r_definition.findall(bytes)
 
     if not definitions:

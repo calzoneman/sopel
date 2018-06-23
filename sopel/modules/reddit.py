@@ -47,9 +47,17 @@ def shutdown(bot):
 
 @rule('.*%s.*' % post_url)
 def rpost_info(bot, trigger, match=None):
-    r = praw.Reddit(user_agent=USER_AGENT)
     match = match or trigger
-    s = r.get_submission(submission_id=match.group(2))
+    try:
+        r = praw.Reddit(
+            user_agent=USER_AGENT,
+            client_id='6EiphT6SSQq7FQ',
+            client_secret=None,
+        )
+        s = r.submission(id=match.group(2))
+    except Exception:
+        r = praw.Reddit(user_agent=USER_AGENT)
+        s = r.get_submission(submission_id=match.group(2))
 
     message = ('[REDDIT] {title} {link}{nsfw} | {points} points ({percent}) | '
                '{comments} comments | Posted by {author} | '
@@ -107,11 +115,15 @@ def rpost_info(bot, trigger, match=None):
 def redditor_info(bot, trigger, match=None):
     """Show information about the given Redditor"""
     commanded = re.match(bot.config.core.prefix + 'redditor', trigger)
-    r = praw.Reddit(user_agent=USER_AGENT)
+    r = praw.Reddit(
+        user_agent=USER_AGENT,
+        client_id='6EiphT6SSQq7FQ',
+        client_secret=None,
+    )
     match = match or trigger
     try:
         u = r.get_redditor(match.group(2))
-    except:
+    except Exception:  # TODO: Be specific
         if commanded:
             bot.say('No such Redditor.')
             return NOLIMIT
@@ -143,8 +155,8 @@ def redditor_info(bot, trigger, match=None):
         message = message + ' | 08Gold'
     if u.is_mod:
         message = message + ' | 05Mod'
-    message = message + (' | Link: ' + str(u.link_karma) + ' | Comment: '
-                         + str(u.comment_karma))
+    message = message + (' | Link: ' + str(u.link_karma) +
+                         ' | Comment: ' + str(u.comment_karma))
 
     bot.say(message)
 
