@@ -22,9 +22,9 @@ else:
     unescape = HTMLParser().unescape
 
 
-domain = r'https?://(?:www\.|np\.)?reddit\.com'
-post_url = '%s/r/(.*?)/comments/([\w-]+)' % domain
-user_url = '%s/u(ser)?/([\w-]+)' % domain
+domain = r'https?://(?:www\.|np\.|old\.)?reddit\.com'
+post_url = r'%s/r/(.*?)/comments/([\w-]+)' % domain
+user_url = r'%s/u(ser)?/([\w-]+)' % domain
 post_regex = re.compile(post_url)
 user_regex = re.compile(user_url)
 spoiler_subs = [
@@ -150,7 +150,7 @@ def redditor_info(bot, trigger, match=None):
     if is_cakeday:
         message = message + ' | 13Cake day'
     if commanded:
-        message = message + ' | http://reddit.com/u/' + u.name
+        message = message + ' | https://reddit.com/u/' + u.name
     if u.is_gold:
         message = message + ' | 08Gold'
     if u.is_mod:

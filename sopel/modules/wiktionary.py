@@ -13,17 +13,20 @@ import requests
 from sopel import web
 from sopel.module import commands, example
 
-uri = 'http://en.wiktionary.org/w/index.php?title=%s&printable=yes'
+uri = 'https://en.wiktionary.org/w/index.php?title=%s&printable=yes'
+r_sup = re.compile(r'<sup[^>]+>.+</sup>')  # Superscripts that are references only, not ordinal indicators, etc...
 r_tag = re.compile(r'<[^>]+>')
 r_ul = re.compile(r'(?ims)<ul>.*?</ul>')
 
 
 def text(html):
-    text = r_tag.sub('', html).strip()
+    text = r_sup.sub('', html)  # Remove superscripts that are references from definition
+    text = r_tag.sub('', text).strip()
     text = text.replace('\n', ' ')
     text = text.replace('\r', '')
     text = text.replace('(intransitive', '(intr.')
     text = text.replace('(transitive', '(trans.')
+    text = web.decode(text)
     return text
 
 
@@ -51,7 +54,13 @@ def wikt(word):
             mode = 'particle'
         elif 'id="Preposition"' in line:
             mode = 'preposition'
-        elif 'id="' in line:
+        elif 'id="Prefix"' in line:
+            mode = 'prefix'
+        elif 'id="Suffix"' in line:
+            mode = 'suffix'
+        # 'id="' can occur in definition lines <li> when <sup> tag is used for references;
+        # make sure those are not excluded (see e.g., abecedarian).
+        elif ('id="' in line) and ('<li>' not in line):
             mode = None
 
         elif (mode == 'etmyology') and ('<p>' in line):
@@ -65,7 +74,8 @@ def wikt(word):
 
 
 parts = ('preposition', 'particle', 'noun', 'verb',
-    'adjective', 'adverb', 'interjection')
+         'adjective', 'adverb', 'interjection',
+         'prefix', 'suffix')
 
 
 def format(result, definitions, number=2):

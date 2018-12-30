@@ -135,7 +135,7 @@ class CoreSection(StaticSection):
 
     Regular expression syntax is used"""
 
-    log_raw = ValidatedAttribute('log_raw', bool, default=True)
+    log_raw = ValidatedAttribute('log_raw', bool, default=False)
     """Whether a log of raw lines as sent and received should be kept."""
 
     logdir = FilenameAttribute('logdir', directory=True, default='logs')
@@ -190,10 +190,10 @@ class CoreSection(StaticSection):
     port = ValidatedAttribute('port', int, default=6667)
     """The port to connect on."""
 
-    prefix = ValidatedAttribute('prefix', default='\.')
+    prefix = ValidatedAttribute('prefix', default='\\.')
     """The prefix to add to the beginning of commands.
 
-    It is a regular expression (so the default, ``\.``, means commands start
+    It is a regular expression (so the default, ``\\.``, means commands start
     with a period), though using capturing groups will create problems."""
 
     reply_errors = ValidatedAttribute('reply_errors', bool, default=True)

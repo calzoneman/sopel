@@ -8,24 +8,24 @@ from __future__ import unicode_literals, absolute_import, print_function, divisi
 import random
 import re
 import requests
-from sopel.modules.search import google_search
+from sopel.modules.search import bing_search
 from sopel.module import commands, url
 
 def get_info(number=None, verify_ssl=True):
     if number:
-        url = 'http://xkcd.com/{}/info.0.json'.format(number)
+        url = 'https://xkcd.com/{}/info.0.json'.format(number)
     else:
-        url = 'http://xkcd.com/info.0.json'
+        url = 'https://xkcd.com/info.0.json'
     data = requests.get(url, verify=verify_ssl).json()
-    data['url'] = 'http://xkcd.com/' + str(data['num'])
+    data['url'] = 'https://xkcd.com/' + str(data['num'])
     return data
 
 
 def google(query):
-    url = google_search(query + ' site:xkcd.com')
+    url = bing_search(query + sites_query)
     if not url:
         return None
-    match = re.match('(?:https?://)?xkcd.com/(\d+)/?', url)
+    match = re.match(r'(?:https?://)?xkcd.com/(\d+)/?', url)
     if match:
         return match.group(1)
 
@@ -102,7 +102,7 @@ def say_result(bot, result):
     bot.say(message)
 
 
-@url('xkcd.com/(\d+)')
+@url(r'xkcd.com/(\d+)')
 def get_url(bot, trigger, match):
     verify_ssl = bot.config.core.verify_ssl
     latest = get_info(verify_ssl=verify_ssl)

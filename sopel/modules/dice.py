@@ -171,8 +171,8 @@ def _roll_dice(bot, dice_expression):
 @sopel.module.priority("medium")
 @sopel.module.example(".roll 3d1+1", 'You roll 3d1+1: (1+1+1)+1 = 4')
 @sopel.module.example(".roll 3d1v2+1", 'You roll 3d1v2+1: (1[+1+1])+1 = 2')
-@sopel.module.example(".roll 2d4", 'You roll 2d4: \(\d\+\d\) = \d', re=True)
-@sopel.module.example(".roll 100d1", '[^:]*: \(100x1\) = 100', re=True)
+@sopel.module.example(".roll 2d4", r'You roll 2d4: \(\d\+\d\) = \d', re=True)
+@sopel.module.example(".roll 100d1", r'[^:]*: \(100x1\) = 100', re=True)
 @sopel.module.example(".roll 1001d1", 'I only have 1000 dice. =(')
 @sopel.module.example(".roll 1d1 + 1d1", 'You roll 1d1 + 1d1: (1) + (1) = 2')
 @sopel.module.example(".roll 1d1+1d1", 'You roll 1d1+1d1: (1)+(1) = 2')
@@ -218,12 +218,20 @@ def roll(bot, trigger):
     eval_str = arg_str % (tuple(map(_get_eval_str, dice)))
     pretty_str = arg_str % (tuple(map(_get_pretty_str, dice)))
 
-    # Showing the actual error will hopefully give a better hint of what is
-    # wrong with the syntax than a generic error message.
     try:
         result = eval_equation(eval_str)
-    except Exception as e:
-        bot.reply("SyntaxError, eval(%s), %s" % (eval_str, e))
+    except TypeError:
+        bot.reply("The type of this equation is, apparently, not a string. " +
+            "How did you do that, anyway?")
+    except ValueError:
+        # As it seems that ValueError is raised if the resulting equation would
+        # be too big, give a semi-serious answer to reflect on this.
+        bot.reply("You roll %s: %s = very big" % (
+            trigger.group(2), pretty_str))
+        return
+    except (SyntaxError, eval_equation.Error):
+        bot.reply("I don't know how to process that. " +
+            "Are the dice as well as the algorithms correct?")
         return
 
     bot.reply("You roll %s: %s = %d" % (
@@ -245,6 +253,7 @@ def choose(bot, trigger):
         choices = trigger.group(2).split(delim)
         if len(choices) > 1:
             break
+    choices = [choice.strip() for choice in choices]
     # Use a different delimiter in the output, to prevent ambiguity.
     for show_delim in ',|/\\':
         if show_delim not in trigger.group(2):

@@ -42,7 +42,7 @@ def translate(text, in_lang='auto', out_lang='en', verify_ssl=True):
         "dt": "t",
         "q": text,
     }
-    url = "http://translate.googleapis.com/translate_a/single"
+    url = "https://translate.googleapis.com/translate_a/single"
     result = requests.get(url, params=query, timeout=40, headers=headers,
                           verify=verify_ssl).text
 
@@ -53,7 +53,10 @@ def translate(text, in_lang='auto', out_lang='en', verify_ssl=True):
         result = result.replace(',,', ',null,')
         result = result.replace('[,', '[null,')
 
-    data = json.loads(result)
+    try:
+        data = json.loads(result)
+    except ValueError:
+        return None, None
 
     if raw:
         return str(data), 'en-raw'
@@ -66,7 +69,7 @@ def translate(text, in_lang='auto', out_lang='en', verify_ssl=True):
     return ''.join(x[0] for x in data[0]), language
 
 
-@rule(u'$nickname[,:]\s+(?:([a-z]{2}) +)?(?:([a-z]{2}|en-raw) +)?["“](.+?)["”]\? *$')
+@rule(r'$nickname[,:]\s+(?:([a-z]{2}) +)?(?:([a-z]{2}|en-raw) +)?["“](.+?)["”]\? *$')
 @example('$nickname: "mon chien"? or $nickname: fr "mon chien"?')
 @priority('low')
 def tr(bot, trigger):
@@ -85,6 +88,8 @@ def tr(bot, trigger):
     if in_lang != out_lang:
         msg, in_lang = translate(phrase, in_lang, out_lang,
                                  verify_ssl=bot.config.core.verify_ssl)
+        if not in_lang:
+            return bot.say("Translation failed, probably because of a rate-limit.")
         if sys.version_info.major < 3 and isinstance(msg, str):
             msg = msg.decode('utf-8')
         if msg:
@@ -133,6 +138,8 @@ def tr2(bot, trigger):
     if src != dest:
         msg, src = translate(phrase, src, dest,
                              verify_ssl=bot.config.core.verify_ssl)
+        if not src:
+            return bot.say("Translation failed, probably because of a rate-limit.")
         if sys.version_info.major < 3 and isinstance(msg, str):
             msg = msg.decode('utf-8')
         if msg:

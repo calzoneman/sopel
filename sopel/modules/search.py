@@ -12,7 +12,8 @@ import xmltodict
 import sys
 
 if sys.version_info.major < 3:
-    from urllib import quote_plus, unquote
+    from urllib import quote_plus, unquote as _unquote
+    unquote = lambda s: _unquote(s.encode('utf-8')).decode('utf-8')
 else:
     from urllib.parse import quote_plus, unquote
 
@@ -76,6 +77,9 @@ def duck_api(query):
 
 
 @commands('duck', 'ddg', 'g')
+# test for bad Unicode handling in py2
+@example('.duck grandorder.wiki chulainn alter', 'https://grandorder.wiki/Cú_Chulainn_(Alter)')
+# the last example is what .help displays
 @example('.duck sopel irc bot', r'https?:\/\/sopel\.chat\/?', re=True)
 def duck(bot, trigger):
     """Queries Duck Duck Go for the specified input."""
@@ -101,7 +105,7 @@ def duck(bot, trigger):
 
 
 @commands('bing')
-@example('.bing sopel irc bot', r'https?:\/\/sopel\.chat\/?', re=True)
+@example('.bing sopel irc bot')
 def bing(bot, trigger):
     """Queries Bing for the specified input."""
     if not trigger.group(2):
@@ -115,7 +119,7 @@ def bing(bot, trigger):
 
 
 @commands('search')
-@example('.search sopel irc bot', r'(https?:\/\/sopel\.chat\/? \(b, d\)|https?:\/\/sopel\.chat\/? \(b\), https?:\/\/sopel\.chat\/? \(d\))', re=True)
+@example('.search sopel irc bot')
 def search(bot, trigger):
     """Searches Bing and Duck Duck Go."""
     if not trigger.group(2):

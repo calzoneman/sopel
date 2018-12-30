@@ -7,6 +7,7 @@
 # Licensed under the Eiffel Forum License 2.
 from __future__ import unicode_literals, absolute_import, print_function, division
 
+import string
 import sys
 if sys.version_info.major >= 3:
     unicode = str
@@ -17,6 +18,8 @@ CONTROL_NORMAL = '\x0f'
 """The control code to reset formatting"""
 CONTROL_COLOR = '\x03'
 """The control code to start or end color formatting"""
+CONTROL_HEX_COLOR = '\x04'
+"""The control code to start or end hexadecimal color formatting"""
 CONTROL_BOLD = '\x02'
 """The control code to start or end bold formatting"""
 CONTROL_ITALIC = '\x1d'
@@ -27,6 +30,8 @@ CONTROL_STRIKETHROUGH = '\x1e'
 """The control code to start or end strikethrough formatting"""
 CONTROL_MONOSPACE = '\x11'
 """The control code to start or end monospace formatting"""
+CONTROL_REVERSE = '\x16'
+"""The control code to start or end reverse-color formatting"""
 
 
 # TODO when we can move to 3.3+ completely, make this an Enum.
@@ -104,6 +109,44 @@ def color(text, fg=None, bg=None):
     return text
 
 
+def _get_hex_color(color):
+    if color is None:
+        return None
+
+    try:
+        color = color.upper()
+        if not all(c in string.hexdigits for c in color):
+            raise AttributeError
+    except AttributeError:
+        raise ValueError('Hexadecimal color value must be passed as string.')
+
+    if len(color) == 3:
+        return ''.join([c * 2 for c in color])
+    elif len(color) == 6:
+        return color
+    else:  # invalid length
+        raise ValueError('Hexadecimal color value must have either 3 or 6 digits.')
+
+
+def hex_color(text, fg=None, bg=None):
+    """Return the text, with the given colors applied in IRC formatting.
+
+    The color can be provided with a string of either 3 or 6 hexadecimal digits.
+    As in CSS, 3-digit colors will be interpreted as if they were 6-digit colors
+    with each digit repeated (e.g. color `c90` is identical to `cc9900`)."""
+    if not fg and not bg:
+        return text
+
+    fg = _get_hex_color(fg)
+    bg = _get_hex_color(bg)
+
+    if not bg:
+        text = ''.join([CONTROL_HEX_COLOR, fg, text, CONTROL_HEX_COLOR])
+    else:
+        text = ''.join([CONTROL_HEX_COLOR, fg, ',', bg, text, CONTROL_HEX_COLOR])
+    return text
+
+
 def bold(text):
     """Return the text, with bold IRC formatting."""
     return ''.join([CONTROL_BOLD, text, CONTROL_BOLD])
@@ -135,3 +178,11 @@ def monospace(text):
     Use only when you can afford to have its meaning lost, as not many clients
     support it yet."""
     return ''.join([CONTROL_MONOSPACE, text, CONTROL_MONOSPACE])
+
+
+def reverse(text):
+    """Return the text, with reverse-color IRC formatting.
+
+    Note: This code isn't super well supported, and its behavior even in clients
+    that understand it (e.g. mIRC) can be unpredictable. Use it carefully."""
+    return ''.join([CONTROL_REVERSE, text, CONTROL_REVERSE])
