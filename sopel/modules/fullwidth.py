@@ -6,7 +6,7 @@ def fullwidth_char(c):
     return c
 
 def convert(text):
-    return ''.join(fullwidth_char(c) for c in text.lower())
+    return ''.join(fullwidth_char(c) for c in text)
 
 @commands('fw', 'fullwidth')
 @example('.fw aesthetic')
