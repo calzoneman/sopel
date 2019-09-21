@@ -228,7 +228,8 @@ def looks_like_html(fragment):
 def find_title(url, verify=True):
     """Return the title for the given URL."""
     response = requests.get(url, stream=True, verify=verify,
-                            headers=default_headers)
+                            headers=default_headers,
+                            timeout=5)
 
     if not response.headers['content-type'].startswith('text/html'):
         return None
