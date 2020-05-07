@@ -76,10 +76,11 @@ def get_observation(location):
 
 @commands('weather')
 @example('.weather Seattle')
-def wunderground(bot, trigger):
+def openweathermap(bot, trigger):
     location = trigger.group(2)
     if not location:
         location = bot.db.get_nick_value(trigger.nick, 'openweathermap_loc')
+
         if not location:
             if bot.db.get_nick_value(trigger.nick, 'woeid'):
                 return bot.reply(
@@ -87,7 +88,10 @@ def wunderground(bot, trigger):
                         "free weather API.  You'll have to .setlocation "
                         "again :("
                 )
+        elif location == 'id:0':
+            location = None
 
+        if not location:
             return bot.reply("I don't know where you live.  " +
                     'Give me a location, like .weather Seattle, or tell me '
                     'where you live by saying .setlocation Seattle, '
@@ -120,8 +124,15 @@ def update_location(bot, trigger):
 
     try:
         observation = get_observation(trigger.group(2).strip())
-        bot.db.set_nick_value(trigger.nick, 'openweathermap_loc',
-                'id:' + str(observation.get_location().get_ID()))
+
+        loc_id = observation.get_location().get_ID()
+        if loc_id == 0:
+            # Seems like OWM sometimes returns id 0 which then doesn't work
+            loc = trigger.group(2).strip()
+        else:
+            loc = 'id:{}'.format(loc_id)
+
+        bot.db.set_nick_value(trigger.nick, 'openweathermap_loc', loc)
         bot.reply("OK, I've updated your location to {}".format(
                 observation.get_location().get_name()))
         bot.say('[Weather] ' + format_observation(observation))
