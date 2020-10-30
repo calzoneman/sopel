@@ -14,6 +14,7 @@ from sopel.config.types import ValidatedAttribute, ListAttribute, StaticSection
 
 import requests
 from bs4 import BeautifulSoup
+import urllib.parse
 
 USER_AGENT = 'Sopel/{} (https://sopel.chat)'.format(__version__)
 default_headers = {'User-Agent': USER_AGENT}
@@ -153,6 +154,13 @@ def title_auto(bot, trigger):
         if message != trigger:
             bot.say(message)
 
+def rewrite_url(url):
+    url = urllib.parse.urlparse(url)
+
+    if url.hostname in ['twitter.com', 'www.twitter.com', 'mobile.twitter.com']:
+        url = url._replace(scheme='https', netloc='nitter.net')
+
+    return urllib.parse.urlunparse(url)
 
 def process_urls(bot, trigger, urls):
     """
@@ -191,7 +199,8 @@ def process_urls(bot, trigger, urls):
                     tinyurl = get_tinyurl(url)
                     bot.memory['shortened_urls'][url] = tinyurl
             # Finally, actually show the URL
-            title = find_title(url, verify=bot.config.core.verify_ssl)
+            title = find_title(rewrite_url(url),
+                               verify=bot.config.core.verify_ssl)
             if title:
                 results.append((title, get_hostname(url), tinyurl))
     return results
