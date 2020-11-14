@@ -26,6 +26,13 @@ def convert_fw(text):
 def convert_au(text):
     return ''.join(australian_char(c.lower()) for c in text[::-1])
 
+def convert_sb(text):
+    chars = [
+        text[i].upper() if i % 2 == 0 else text[i].lower()
+        for i in range(len(text))
+    ]
+    return ''.join(chars)
+
 @commands('fw', 'fullwidth')
 @example('.fw aesthetic')
 def fullwidth(bot, trigger):
@@ -43,3 +50,12 @@ def australia(bot, trigger):
         return NOLIMIT
 
     bot.say(convert_au(trigger.group(2)))
+
+@commands('sb', 'spongebob')
+@example('.sb sarcasm')
+def fullwidth(bot, trigger):
+    if trigger.group(2) is None:
+        bot.reply(convert_fw('convert what to spongebob?'))
+        return NOLIMIT
+
+    bot.say(convert_sb(trigger.group(2)))
