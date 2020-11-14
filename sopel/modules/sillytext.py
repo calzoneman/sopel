@@ -53,9 +53,9 @@ def australia(bot, trigger):
 
 @commands('sb', 'spongebob')
 @example('.sb sarcasm')
-def fullwidth(bot, trigger):
+def spongebob(bot, trigger):
     if trigger.group(2) is None:
-        bot.reply(convert_fw('convert what to spongebob?'))
+        bot.reply(convert_sb('convert what to spongebob?'))
         return NOLIMIT
 
     bot.say(convert_sb(trigger.group(2)))
